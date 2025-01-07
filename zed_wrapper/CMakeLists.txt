@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.8)
 project(zed_wrapper)
 
 ## Generate symbols for IDE indexer
@@ -46,41 +46,8 @@ else()
 endif()
 ################################################
 
-# Default to C99
-if(NOT CMAKE_C_STANDARD)
-  set(CMAKE_C_STANDARD 99)
-endif()
-
-# Default to C++14
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
-endif()
-
-# if CMAKE_BUILD_TYPE is not specified, take 'Release' as default
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif()
-
-if(CMAKE_BUILD_TYPE MATCHES Release)
-  #message(" * Release Mode")
-  add_compile_options(-Wno-deprecated-declarations)
-endif()
-
-if(CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
-  #message(" * Release with Debug Info Mode")
-  add_compile_options(-Wall -Wextra -Wpedantic)
-  add_compile_options(-Wno-deprecated-declarations)
-endif()
-
-if(CMAKE_BUILD_TYPE MATCHES Debug)
-  message(" * Debug Mode")
-endif()
-
 #############################################
 # Dependencies
-find_package(ZED 4 REQUIRED)
-find_package(CUDA REQUIRED)
-
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 

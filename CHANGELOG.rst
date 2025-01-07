@@ -1,9 +1,52 @@
 LATEST CHANGES
 ==============
 
-2024-04-26 (ZED SDK v4.1)
--------------------------
-- Updated the Docker files to the CUDA 12.4 (PC), L4T 35.4 (Jetson), SDK v4.1.0
+2025-01-03
+----------
+- Fixed wrong range check for the `general.pub_downscale_factor` parameter
+
+2025-01-02
+----------
+- Enhanced sensor thread rate due to an automatically adjusting sleep time
+
+2024-12-13
+----------
+- Revoved the `zed-ros2-interfaces` sub-module. The `zed_msgs` package is now included in ROS 2 Humble binaries and can be installed with `sudo apt install ros-humble-zed-msgs`.
+
+2024-11-27
+----------
+- Fixed 4K resolution support for ZED X One 4K cameras
+- Changed C++ version to 17 to follow ROS 2 Humble standard
+
+2024-11-18
+----------
+- Renamed `common.yaml` to `common_stereo.yaml`
+- Added `common_mono.yaml` for monocular cameras
+- Added `video.enable_hdr` to `zedxone4k.yaml` for monocular 4K cameras
+
+2024-11-12
+----------
+- Changed the name of the package `zed_interfaces` to `zed_msgs` to match the ROS2 naming convention
+
+2024-10-28
+----------
+- Added the new `stereolabs::ZedCameraOne` component to handle ZED X One cameras
+- Removed the ZED Wrapper executable node.
+
+  - Modified the launch file to create an isolated composable container that loads the `stereolabs:ZedCamera` or the `stereolabs:ZedCameraOne` component according to the camera model  
+
+2024-10-18
+----------
+- Added support for custom ONNX detection engine (SDK v4.2 required)
+
+  - Added value `CUSTOM_YOLOLIKE_BOX_OBJECTS` to the `object_detection.model` parameter
+  - Added parameter `object_detection.custom_onnx_file` to set the full path of custom ONNX file
+  - Added parameter `object_detection.onnx_input_size` to set the size of the YOLO input tensor
+  - Added parameter `object_detection.custom_label_yaml` to set the full path to custom YAML file storing class labels in [COCO format](https://docs.ultralytics.com/datasets/detect/coco/#dataset-yaml)
+
+v4.1.x
+------
+- Updated the Docker files to the CUDA 12.4 (PC), L4T 35.4 (Jetson), SDK v4.1.4
 - Added Local Streaming output
   - Added `enable_streaming` service to start/stop a streaming server
   - Added Streaming Server diagnostic
@@ -45,6 +88,12 @@ LATEST CHANGES
 - Removed QoS parameters to use ROS 2 QoS overwrite -> https://design.ros2.org/articles/qos_configurability.html
 - Added support for new `NEURAL_PLUS` depth mode
 - Added new `<camera_name>_gnss_link` frame to URDF to set the position of the GNSS antenna with respect to the camera position
+- New Docker configuration files allow to easily create "ZED ROS2 Wrapper" images based on specific tag versions. [Read more](./docker/README.md)
+- Fixed a bug while playing a ZED X stream on a "not-Jetson" host device
+- Add support for point cloud transport [only Humble, no Foxy]
+- Add support for FFMPEG image transport
+- Add new `ffmpeg.yaml` configuration file
+- Fix `~/imu/data_raw` message not containing RAW IMU data
 
 v4.0.8
 ------

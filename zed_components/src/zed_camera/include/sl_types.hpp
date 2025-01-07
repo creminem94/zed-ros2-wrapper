@@ -50,21 +50,36 @@
 #include <string>
 #include <vector>
 #include <visualization_msgs/msg/marker.hpp>
-#include <zed_interfaces/msg/depth_info_stamped.hpp>
-#include <zed_interfaces/msg/gnss_fusion_status.hpp>
-#include <zed_interfaces/msg/object.hpp>
-#include <zed_interfaces/msg/objects_stamped.hpp>
-#include <zed_interfaces/msg/plane_stamped.hpp>
-#include <zed_interfaces/msg/pos_track_status.hpp>
-#include <zed_interfaces/srv/set_pose.hpp>
-#include <zed_interfaces/srv/set_roi.hpp>
-#include <zed_interfaces/srv/start_svo_rec.hpp>
+#include <zed_msgs/msg/depth_info_stamped.hpp>
+#include <zed_msgs/msg/gnss_fusion_status.hpp>
+#include <zed_msgs/msg/object.hpp>
+#include <zed_msgs/msg/objects_stamped.hpp>
+#include <zed_msgs/msg/plane_stamped.hpp>
+#include <zed_msgs/msg/pos_track_status.hpp>
+#include <zed_msgs/srv/set_pose.hpp>
+#include <zed_msgs/srv/set_roi.hpp>
+#include <zed_msgs/srv/start_svo_rec.hpp>
+
+#ifndef FOUND_FOXY
+  #include <point_cloud_transport/point_cloud_transport.hpp>
+#endif
 
 #define TIMEZERO_ROS rclcpp::Time(0, 0, RCL_ROS_TIME)
 #define TIMEZERO_SYS rclcpp::Time(0, 0, RCL_SYSTEM_TIME)
 
 namespace stereolabs
 {
+
+// ----> Global constants
+const double DEG2RAD = 0.017453293;
+const double RAD2DEG = 57.295777937;
+
+const sl::COORDINATE_SYSTEM ROS_COORDINATE_SYSTEM =
+  sl::COORDINATE_SYSTEM::RIGHT_HANDED_Z_UP_X_FWD;
+const sl::UNIT ROS_MEAS_UNITS = sl::UNIT::METER;
+
+const int QOS_QUEUE_SIZE = 10;
+// <---- Global constants
 
 #ifdef _SL_JETSON_
 const bool IS_JETSON = true;
@@ -93,9 +108,9 @@ typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Temperature>>
 
 typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>>
   posePub;
-typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PosTrackStatus>>
+typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::PosTrackStatus>>
   poseStatusPub;
-typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::GnssFusionStatus>>
+typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::GnssFusionStatus>>
   gnssFusionStatusPub;
 typedef std::shared_ptr<
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>>
@@ -105,13 +120,12 @@ typedef std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::TransformStamped>>
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> odomPub;
 typedef std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Path>> pathPub;
 
-typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::ObjectsStamped>>
+typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::ObjectsStamped>>
   objPub;
-typedef std::shared_ptr<
-    rclcpp::Publisher<zed_interfaces::msg::DepthInfoStamped>>
+typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::DepthInfoStamped>>
   depthInfoPub;
 
-typedef std::shared_ptr<rclcpp::Publisher<zed_interfaces::msg::PlaneStamped>>
+typedef std::shared_ptr<rclcpp::Publisher<zed_msgs::msg::PlaneStamped>>
   planePub;
 typedef std::shared_ptr<rclcpp::Publisher<visualization_msgs::msg::Marker>>
   markerPub;
@@ -121,12 +135,11 @@ typedef std::shared_ptr<rclcpp::Publisher<geographic_msgs::msg::GeoPoseStamped>>
 typedef std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::NavSatFix>>
   gnssFixPub;
 
-typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>>
-  clickedPtSub;
-typedef std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>>
-  gnssFixSub;
-typedef std::shared_ptr<rclcpp::Subscription<rosgraph_msgs::msg::Clock>>
-  clockSub;
+typedef std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PointStamped>> clickedPtSub;
+typedef std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::NavSatFix>> gnssFixSub;
+typedef std::shared_ptr<rclcpp::Subscription<rosgraph_msgs::msg::Clock>> clockSub;
+
+//typedef std::unique_ptr<point_cloud_transport::PointCloudTransport> ptTranspPtr;
 
 typedef std::unique_ptr<sensor_msgs::msg::Image> imageMsgPtr;
 typedef std::shared_ptr<sensor_msgs::msg::CameraInfo> camInfoMsgPtr;
@@ -138,8 +151,9 @@ typedef std::unique_ptr<sensor_msgs::msg::MagneticField> magMsgPtr;
 typedef std::unique_ptr<stereo_msgs::msg::DisparityImage> dispMsgPtr;
 
 typedef std::unique_ptr<geometry_msgs::msg::PoseStamped> poseMsgPtr;
-typedef std::unique_ptr<zed_interfaces::msg::PosTrackStatus> poseStatusMsgPtr;
-typedef std::unique_ptr<zed_interfaces::msg::GnssFusionStatus> gnssFusionStatusMsgPtr;
+
+typedef std::unique_ptr<zed_msgs::msg::PosTrackStatus> poseStatusMsgPtr;
+typedef std::unique_ptr<zed_msgs::msg::GnssFusionStatus> gnssFusionStatusMsgPtr;
 typedef std::unique_ptr<geometry_msgs::msg::PoseWithCovarianceStamped>
   poseCovMsgPtr;
 typedef std::unique_ptr<geometry_msgs::msg::TransformStamped> transfMsgPtr;
@@ -149,19 +163,20 @@ typedef std::unique_ptr<nav_msgs::msg::Path> pathMsgPtr;
 typedef std::unique_ptr<geographic_msgs::msg::GeoPoseStamped> geoPoseMsgPtr;
 typedef std::unique_ptr<sensor_msgs::msg::NavSatFix> navsatMsgPtr;
 
-typedef std::unique_ptr<zed_interfaces::msg::ObjectsStamped> objDetMsgPtr;
-typedef std::unique_ptr<zed_interfaces::msg::DepthInfoStamped> depthInfoMsgPtr;
-typedef std::unique_ptr<zed_interfaces::msg::PlaneStamped> planeMsgPtr;
+typedef std::unique_ptr<zed_msgs::msg::ObjectsStamped> objDetMsgPtr;
+typedef std::unique_ptr<zed_msgs::msg::DepthInfoStamped> depthInfoMsgPtr;
+typedef std::unique_ptr<zed_msgs::msg::PlaneStamped> planeMsgPtr;
 typedef std::unique_ptr<visualization_msgs::msg::Marker> markerMsgPtr;
 
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetOdomSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetPosTrkSrvPtr;
-typedef rclcpp::Service<zed_interfaces::srv::SetPose>::SharedPtr setPoseSrvPtr;
+typedef rclcpp::Service<zed_msgs::srv::SetPose>::SharedPtr setPoseSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableObjDetPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableBodyTrkPtr;
 typedef rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enableMappingPtr;
-typedef rclcpp::Service<zed_interfaces::srv::StartSvoRec>::SharedPtr startSvoRecSrvPtr;
-typedef rclcpp::Service<zed_interfaces::srv::SetROI>::SharedPtr setRoiSrvPtr;
+typedef rclcpp::Service<zed_msgs::srv::StartSvoRec>::SharedPtr
+  startSvoRecSrvPtr;
+typedef rclcpp::Service<zed_msgs::srv::SetROI>::SharedPtr setRoiSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stopSvoRecSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr pauseSvoSrvPtr;
 typedef rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resetRoiSrvPtr;
